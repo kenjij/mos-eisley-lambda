@@ -1,0 +1,27 @@
+openapi: "3.0.1"
+info:
+  title: "MosEisley"
+  description: "MosEisley API gateway"
+  version: "2020-01-01 00:00:00UTC"
+paths:
+  /events:
+    post:
+      responses:
+        default:
+          description: "Default response for POST /events"
+  /actions:
+    post:
+      responses:
+        default:
+          description: "Default response for POST /actions"
+  /menus:
+    post:
+      responses:
+        default:
+          description: "Default response for POST /menus"
+  /commands:
+    post:
+      responses:
+        default:
+          description: "Default response for POST /commands"
+x-amazon-apigateway-importexport-version: "1.0"
