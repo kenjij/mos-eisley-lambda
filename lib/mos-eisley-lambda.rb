@@ -75,7 +75,7 @@ module MosEisley
       end
     when '/events'
       # Respond to Slack challenge request
-      if se[:event][:url_verification]
+      if se[:event][:type] == 'url_verification'
         c = se[:event][:challenge]
         MosEisley.logger.info("Slack Events API challenge accepted: #{c}")
         return "{\"challenge\": \"#{c}\"}"
