@@ -13,10 +13,10 @@ Episode 2 of the Ruby based [Slack app](https://api.slack.com/) framework, this 
 1. Create an SQS queue for MosEisley
 1. Create an IAM role for MosEisley Lambda function
 1. Create a Lambda function for MosEisley
-  - You can install this gem using [Lambda Layer](#mos-eisley-lambda) or just copy the `lib` directory to your Lambda code.
+   - You can install this gem using [Lambda Layer](#using-with-lambda-layers) or just copy the `lib` directory to your Lambda code.
 1. Create an HTTP API Gateway
-  1. Create the appropriate routes (or use [the OpenAPI spec](https://github.com/kenjij/mos-eisley-lambda/blob/main/openapi3.yaml))
-  1. Create Lambda integration and attach it to all the routes
+   1. Create the appropriate routes (or use [the OpenAPI spec](https://github.com/kenjij/mos-eisley-lambda/blob/main/openapi3.yaml))
+   1. Create Lambda integration and attach it to all the routes
 
 Configure Lambda environment variable.
 
