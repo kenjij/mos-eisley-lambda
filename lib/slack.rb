@@ -120,9 +120,9 @@ module MosEisley
     def self.views_push(trigger_id:, view:)
     end
 
-    # def self.auth_test
-    #   post_to_slack('auth.test')
-    # end
+    def self.auth_test
+      post_to_slack('auth.test', '')
+    end
 
     private
 
