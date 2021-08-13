@@ -48,11 +48,23 @@ module MosEisley
       post_to_slack('chat.meMessage', data)
     end
 
-    def self.chat_postephemeral()
+    def self.chat_postephemeral(channel:, blocks: nil, text: nil, thread_ts: nil)
+      chat_send(:postEphemeral, channel, blocks, text, thread_ts)
     end
 
     def self.chat_postmessage(channel:, blocks: nil, text: nil, thread_ts: nil)
+      chat_send(:postMessage, channel, blocks, text, thread_ts)
+    end
+
+    def self.chat_schedulemessage(channel:, post_at:, blocks: nil, text: nil, thread_ts: nil)
+      chat_send(:scheduleMessage, channel, blocks, text, thread_ts, post_at)
+    end
+
+    def self.chat_send(m, channel, blocks, text, thread_ts, post_at = nil)
       data = {channel: channel}
+      if m == :scheduleMessage
+        post_at ? data[:post_at] = post_at : raise
+      end
       if blocks
         data[:blocks] = blocks
         data[:text] = text if text
@@ -60,10 +72,7 @@ module MosEisley
         text ? data[:text] = text : raise
       end
       data[:thread_ts] = thread_ts if thread_ts
-      post_to_slack('chat.postMessage', data)
-    end
-
-    def self.chat_schedulemessage()
+      post_to_slack("chat.#{m}", data)
     end
 
     def self.post_response_url(url, payload)
