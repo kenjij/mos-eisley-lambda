@@ -100,8 +100,8 @@ end
 
 ### Helpers
 
-`ME::S3PO` – collection of helpers to analyze/create Slack messages.
-`ME::SlackWeb` – methods for sending payloads to Slack Web API calls.
+- `ME::S3PO` – collection of helpers to analyze/create Slack messages.
+- `ME::SlackWeb` – methods for sending payloads to Slack Web API calls.
 
 ## Event Lifecycle
 
@@ -128,7 +128,7 @@ Send a message to SQS from another app to send a Slack message
 
 ## Using with Lambda Layers
 
-Used the Makefile to create a zip file which can be uploaded as a Lambda Layer.
+Used the Makefile to create a zip file which can be uploaded to a Lambda Layer.
 
 ```sh
 make

@@ -48,11 +48,23 @@ module MosEisley
       post_to_slack('chat.meMessage', data)
     end
 
-    def self.chat_postephemeral()
+    def self.chat_postephemeral(channel:, blocks: nil, text: nil, thread_ts: nil)
+      chat_send(:postEphemeral, channel, blocks, text, thread_ts)
     end
 
     def self.chat_postmessage(channel:, blocks: nil, text: nil, thread_ts: nil)
+      chat_send(:postMessage, channel, blocks, text, thread_ts)
+    end
+
+    def self.chat_schedulemessage(channel:, post_at:, blocks: nil, text: nil, thread_ts: nil)
+      chat_send(:scheduleMessage, channel, blocks, text, thread_ts, post_at)
+    end
+
+    def self.chat_send(m, channel, blocks, text, thread_ts, post_at = nil)
       data = {channel: channel}
+      if m == :scheduleMessage
+        post_at ? data[:post_at] = post_at : raise
+      end
       if blocks
         data[:blocks] = blocks
         data[:text] = text if text
@@ -60,10 +72,7 @@ module MosEisley
         text ? data[:text] = text : raise
       end
       data[:thread_ts] = thread_ts if thread_ts
-      post_to_slack('chat.postMessage', data)
-    end
-
-    def self.chat_schedulemessage()
+      post_to_slack("chat.#{m}", data)
     end
 
     def self.post_response_url(url, payload)
@@ -111,9 +120,52 @@ module MosEisley
     def self.views_push(trigger_id:, view:)
     end
 
-    # def self.auth_test
-    #   post_to_slack('auth.test')
-    # end
+    def self.users_info(user)
+      users_send('info', {user: user})
+    end
+
+    def self.users_list(cursor: nil, limit: nil)
+      params = {include_locale: true}
+      params[:cursor] = cursor if cursor
+      params[:limit] = limit if limit
+      users_send('list', params)
+    end
+
+    def self.users_lookupbyemail(email)
+      users_send('lookupByEmail', {email: email})
+    end
+
+    def self.users_profile_get(user)
+      users_send('profile.get', {user: user})
+    end
+
+    def self.users_send(m, params)
+      l = MosEisley.logger
+      call = "users.#{m}"
+      url ||= BASE_URL + call
+      head = {authorization: "Bearer #{ENV['SLACK_BOT_ACCESS_TOKEN']}"}
+      r = Neko::HTTP.get(url, params, head)
+      if r[:code] != 200
+        l.warn("#{call} HTTP failed: #{r[:message]}")
+        return nil
+      end
+      begin
+        h = JSON.parse(r[:body], {symbolize_names: true})
+        if h[:ok]
+          return h
+        else
+          l.warn("#{call} Slack failed: #{h[:error]}")
+          l.debug("#{h[:response_metadata]}")
+          return nil
+        end
+      rescue
+        return {body: r[:body]}
+      end
+    end
+
+    def self.auth_test
+      post_to_slack('auth.test', '')
+    end
 
     private
 
