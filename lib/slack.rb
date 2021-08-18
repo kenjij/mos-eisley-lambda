@@ -120,47 +120,30 @@ module MosEisley
     def self.views_push(trigger_id:, view:)
     end
 
+    def self.conversations_members(channel:, cursor: nil, limit: nil)
+      params = {channel: channel}
+      params[:cursor] = cursor if cursor
+      params[:limit] = limit if limit
+      get_from_slack('conversations.members', params)
+    end
+
     def self.users_info(user)
-      users_send('info', {user: user})
+      get_from_slack('users.info', {user: user})
     end
 
     def self.users_list(cursor: nil, limit: nil)
       params = {include_locale: true}
       params[:cursor] = cursor if cursor
       params[:limit] = limit if limit
-      users_send('list', params)
+      get_from_slack('users.list', params)
     end
 
     def self.users_lookupbyemail(email)
-      users_send('lookupByEmail', {email: email})
+      get_from_slack('users.lookupByEmail', {email: email})
     end
 
     def self.users_profile_get(user)
-      users_send('profile.get', {user: user})
-    end
-
-    def self.users_send(m, params)
-      l = MosEisley.logger
-      call = "users.#{m}"
-      url ||= BASE_URL + call
-      head = {authorization: "Bearer #{ENV['SLACK_BOT_ACCESS_TOKEN']}"}
-      r = Neko::HTTP.get(url, params, head)
-      if r[:code] != 200
-        l.warn("#{call} HTTP failed: #{r[:message]}")
-        return nil
-      end
-      begin
-        h = JSON.parse(r[:body], {symbolize_names: true})
-        if h[:ok]
-          return h
-        else
-          l.warn("#{call} Slack failed: #{h[:error]}")
-          l.debug("#{h[:response_metadata]}")
-          return nil
-        end
-      rescue
-        return {body: r[:body]}
-      end
+      get_from_slack('users.profile.get', {user: user})
     end
 
     def self.auth_test
@@ -168,6 +151,29 @@ module MosEisley
     end
 
     private
+
+    def self.get_from_slack(m, params)
+      l = MosEisley.logger
+      url ||= BASE_URL + m
+      head = {authorization: "Bearer #{ENV['SLACK_BOT_ACCESS_TOKEN']}"}
+      r = Neko::HTTP.get(url, params, head)
+      if r[:code] != 200
+        l.warn("#{m} HTTP failed: #{r[:message]}")
+        return nil
+      end
+      begin
+        h = JSON.parse(r[:body], {symbolize_names: true})
+        if h[:ok]
+          return h
+        else
+          l.warn("#{m} Slack failed: #{h[:error]}")
+          l.debug("#{h[:response_metadata]}")
+          return nil
+        end
+      rescue
+        return {body: r[:body]}
+      end
+    end
 
     def self.post_to_slack(method, data, url = nil)
       l = MosEisley.logger
