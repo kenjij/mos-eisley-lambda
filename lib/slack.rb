@@ -120,6 +120,13 @@ module MosEisley
     def self.views_push(trigger_id:, view:)
     end
 
+    def self.conversations_members(channel:, cursor: nil, limit: nil)
+      params = {channel: channel}
+      params[:cursor] = cursor if cursor
+      params[:limit] = limit if limit
+      get_from_slack('conversations.members', params)
+    end
+
     def self.users_info(user)
       get_from_slack('users.info', {user: user})
     end
