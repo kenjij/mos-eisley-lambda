@@ -1,3 +1,7 @@
+# S3PO - Slack protocol droid in Mos Eisley
+#
+# v.20210626
+
 require 'json'
 require 'time'
 require_relative './blockkit'

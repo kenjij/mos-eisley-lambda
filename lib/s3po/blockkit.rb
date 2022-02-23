@@ -1,3 +1,8 @@
+# S3PO - Slack protocol droid in Mos Eisley
+#     ::BlockKit - Block Kit tools
+#
+# v.20210626
+
 module MosEisley
   module S3PO
     module BlockKit
