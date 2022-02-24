@@ -16,7 +16,7 @@ module MosEisley
   end
 
   def self.lambda_event(event, context)
-    abort unless preflightcheck
+    raise 'Pre-flight check failed!' unless preflightcheck
     case
     when event['routeKey']
       # Inbound Slack event (via API GW)
