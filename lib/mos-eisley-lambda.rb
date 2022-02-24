@@ -99,19 +99,14 @@ module MosEisley
       # Nothing to do, just pass to SQS
     when '/commands'
       ## Slack Slash Commands
-      ser = {}
-      ack = MosEisley::Handler.command_acks[se[:event][:command]]
-      if ack
-        ser[:response_type] = ack[:response_type]
-        ser[:text] =
-          if ack[:text]
-            ack[:text]
-          else
-            text = sep[:text].empty? ? '' : " #{se[:event][:text]}"
-            "Received: `#{se[:event][:command]}#{text}`"
-          end
+      MosEisley.logger.debug("Slash command event:\n#{se[:event]}")
+      r = MosEisley::Handler.run(:command_response, se[:event])
+      if String === r
+        r = {text: r}
+      end
+      if Hash === r
         # AWS sets status code and headers by passing JSON string
-        resp = JSON.fast_generate(ser)
+        resp = JSON.fast_generate(r)
       end
     when '/events'
       ## Slack Event Subscriptions
