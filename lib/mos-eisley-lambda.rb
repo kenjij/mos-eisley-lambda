@@ -2,13 +2,12 @@ require_relative './logger'
 require_relative './slack'
 require_relative './s3po/s3po'
 require_relative './handler'
-require 'aws-sdk-sqs'
+require 'aws-sdk-lambda'
 require 'aws-sdk-ssm'
 require 'base64'
 require 'json'
 
 ME = MosEisley
-SQS = Aws::SQS::Client.new
 
 module MosEisley
   def self.config
@@ -21,11 +20,12 @@ module MosEisley
     when event['routeKey']
       # Inbound Slack event (via API GW)
       MosEisley.logger.info('API GW event')
-      return apigw_event(event)
-    when event.dig('Records',0,'eventSource') == 'aws:sqs'
-      # Internal event (via SQS)
-      MosEisley.logger.info('SQS event')
-      return sqs_event(event)
+      return apigw_event(event, context)
+    when event.dig('Records',0,'eventSource') == 'MosEisley:Slack_event'
+      # Internal event (via invoke)
+      MosEisley.logger.info('Invoke event')
+      MosEisley.logger.debug("#{event}")
+      return invoke_event(event)
     else
       # Unknown event
       MosEisley.logger.info('Unknown event')
@@ -39,11 +39,11 @@ module MosEisley
       return true
     end
     env_required = [
-      'MOSEISLEY_SQS_URL',
       'SLACK_CREDENTIALS_SSMPS_PATH',
     ]
     env_optional = [
       'MOSEISLEY_LOG_LEVEL',
+      'SLACK_LOG_CHANNEL_ID',
     ]
     config_required = [
       :signing_secret,
@@ -59,8 +59,6 @@ module MosEisley
         return false
       end
       case v
-      when 'MOSEISLEY_SQS_URL'
-        MosEisley.logger.info("Deprecated environment variable: #{v}")
       when 'SLACK_CREDENTIALS_SSMPS_PATH'
         ssm = Aws::SSM::Client.new
         rparams = {
@@ -84,7 +82,7 @@ module MosEisley
     return true
   end
 
-  def self.apigw_event(event)
+  def self.apigw_event(event, context)
     se = MosEisley::SlackEvent.validate(event)
     unless se[:valid?]
       MosEisley.logger.warn("#{se[:msg]}")
@@ -96,7 +94,7 @@ module MosEisley
     case ep
     when '/actions'
       ## Slack Interactivity & Shortcuts
-      # Nothing to do, just pass to SQS
+      # Nothing to do, through-pass data
     when '/commands'
       ## Slack Slash Commands
       MosEisley.logger.debug("Slash command event:\n#{se[:event]}")
@@ -124,59 +122,45 @@ module MosEisley
       MosEisley.logger.warn('Unknown request, ignored.')
       return {statusCode: 400}
     end
-    m = {
-      queue_url: ENV['MOSEISLEY_SQS_URL'],
-      message_attributes: {
-        'source' => {
-          data_type: 'String',
-          string_value: 'slack',
-        },
-        'destination' => {
-          data_type: 'String',
-          string_value: 'moseisley',
-        },
-        'endpoint' => {
-          data_type: 'String',
-          string_value: ep,
-        },
-      },
-      message_body: "{\"payload\":#{se[:json]}}",
+    pl = {
+      Records: [
+        {
+          eventSource: 'MosEisley:Slack_event',
+          endpoint: ep,
+          body: se[:json],
+        }
+      ]
     }
-    SQS.send_message(m)
-    s = m[:message_body].length
-    MosEisley.logger.debug("Sent message to SQS with body size #{s}.")
-    return resp
+    lc = Aws::Lambda::Client.new
+    params = {
+      function_name: context.function_name,
+      invocation_type: 'Event',
+      payload: JSON.fast_generate(pl),
+    }
+    r = lc.invoke(params)
+    if r.status_code >= 200 && r.status_code < 300
+      MosEisley.logger.debug("Successfullly invoked with playload size: #{params[:payload].length}")
+    else
+      MosEisley.logger.warn("Problem with invoke, status code: #{r.status_code}")
+    end
+    resp
   end
 
-  def self.sqs_event(event)
-    a = event.dig('Records',0,'messageAttributes')
-    src = a.dig('source','stringValue')
-    dst = a.dig('destination','stringValue')
-    ep = a.dig('endpoint','stringValue')
+  def self.invoke_event(event)
+    ep = event.dig('Records',0,'endpoint')
     se = JSON.parse(event.dig('Records',0,'body'), {symbolize_names: true})
-    se = se[:payload]
-    MosEisley.logger.debug("Event src: #{src}, dst: #{dst}")
-    if src == 'slack'
-      # Inbound Slack event
-      case ep
-      when '/actions'
-        MosEisley::Handler.run(:action, se)
-      when '/commands'
-        MosEisley::Handler.run(:command, se)
-      when '/events'
-        MosEisley::Handler.run(:event, se)
-      when '/menus'
-        MosEisley.logger.warn('Menu request cannot be processed here.')
-      else
-        MosEisley.logger.warn("Unknown request: #{ep}")
-      end
-    elsif dst == 'slack'
-      # An event to be sent to Slack
-      MosEisley.logger.debug a.dig('api','stringValue')
+    case ep
+    when '/actions'
+      MosEisley::Handler.run(:action, se)
+    when '/commands'
+      MosEisley::Handler.run(:command, se)
+    when '/events'
+      MosEisley::Handler.run(:event, se)
+    when '/menus'
+      MosEisley.logger.warn('Menu request cannot be processed here.')
     else
-      MosEisley.logger.warn('Unknown event, ignored.')
+      MosEisley.logger.warn("Unknown request: #{ep}")
     end
-    return 0
   end
 
   def self.unknown_event(event)
