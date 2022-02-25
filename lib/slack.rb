@@ -15,7 +15,7 @@ module MosEisley
       end
       b = e['isBase64Encoded'] ? Base64.decode64(e['body']) : e['body']
       s = "v0:#{t}:#{b}"
-      k = MosEisley.config[:signing_secret]
+      k = MosEisley.config.signing_secret
       sig = "v0=#{OpenSSL::HMAC.hexdigest('sha256', k, s)}"
       if e.dig('headers', 'x-slack-signature') != sig
         return {valid?: false, msg: 'Invalid signature.'}
@@ -155,7 +155,7 @@ module MosEisley
     def self.get_from_slack(m, params)
       l = MosEisley.logger
       url ||= BASE_URL + m
-      head = {authorization: "Bearer #{MosEisley.config[:bot_access_token]}"}
+      head = {authorization: "Bearer #{MosEisley.config.bot_access_token}"}
       r = Neko::HTTP.get(url, params, head)
       if r[:code] != 200
         l.warn("#{m} HTTP failed: #{r[:message]}")
@@ -178,7 +178,7 @@ module MosEisley
     def self.post_to_slack(method, data, url = nil)
       l = MosEisley.logger
       url ||= BASE_URL + method
-      head = {authorization: "Bearer #{MosEisley.config[:bot_access_token]}"}
+      head = {authorization: "Bearer #{MosEisley.config.bot_access_token}"}
       r = Neko::HTTP.post_json(url, data, head)
       if r[:code] != 200
         l.warn("post_to_slack HTTP failed: #{r[:message]}")

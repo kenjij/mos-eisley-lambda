@@ -11,13 +11,24 @@ require 'json'
 ME = MosEisley
 
 module MosEisley
-  def self.config
-    @config ||= {}
+  def self.config(data = nil)
+    if data
+      unless @config
+        @config = Config.new(data)
+        MosEisley.logger.info('Config loaded')
+      else
+        MosEisley.logger.warn('Ignored, already configured')
+      end
+    end
+    @config
   end
 
   def self.lambda_event(event, context)
     raise 'Pre-flight check failed!' unless preflightcheck
     case
+    when event['initializeOnly']
+      MosEisley.logger.info('Dry run, initializing only')
+      return
     when event['routeKey']
       # Inbound Slack event (via API GW)
       MosEisley.logger.info('API GW event')
@@ -35,14 +46,15 @@ module MosEisley
   end
 
   def self.preflightcheck
-    if config[:timestamp]
-      MosEisley.logger.debug("Confing already loaded at: #{config[:timestamp]}")
+    if config
+      MosEisley.logger.debug("Confing already loaded at: #{config.timestamp}")
       return true
     end
     env_required = [
       'SLACK_CREDENTIALS_SSMPS_PATH',
     ]
     env_optional = [
+      'MOSEISLEY_HANDLERS_DIR',
       'MOSEISLEY_LOG_LEVEL',
       'SLACK_LOG_CHANNEL_ID',
     ]
@@ -53,6 +65,11 @@ module MosEisley
     l = ENV['MOSEISLEY_LOG_LEVEL']
     if String === l && ['DEBUG', 'INFO', 'WARN', 'ERROR'].include?(l.upcase)
       MosEisley.logger.level = eval("Logger::#{l.upcase}")
+    end
+    if dir = ENV['MOSEISLEY_HANDLERS_DIR']
+      MosEisley::Handler.import_from_path(dir)
+    else
+      MosEisley::Handler.import
     end
     env_required.each do |v|
       if ENV[v].nil?
@@ -66,20 +83,20 @@ module MosEisley
           path: ENV['SLACK_CREDENTIALS_SSMPS_PATH'],
           with_decryption: true,
         }
+        c = {}
         ssm.get_parameters_by_path(rparams).parameters.each do |prm|
           k = prm[:name].split('/').last.to_sym
-          config[k] = prm[:value]
+          c[k] = prm[:value]
           config_required.delete(k)
         end
+        unless config_required.empty?
+          t = "Missing config values: #{config_required.join(', ')}"
+          MosEisley.logger.error(t)
+          return false
+        end
+        config(c)
       end
     end
-    unless config_required.empty?
-      t = "Missing config values: #{config_required.join(', ')}"
-      MosEisley.logger.error(t)
-      return false
-    end
-    config[:timestamp] = Time.now
-    MosEisley.logger.info('Config loaded')
     return true
   end
 
