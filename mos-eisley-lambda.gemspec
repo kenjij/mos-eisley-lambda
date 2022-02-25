@@ -1,6 +1,8 @@
+require_relative './lib/version'
+
 Gem::Specification.new do |s|
   s.name          = 'mos-eisley-lambda'
-  s.version       = '0.6.0'
+  s.version       = MosEisley::VERSION
   s.authors       = ['Ken J.']
   s.email         = ['kenjij@gmail.com']
   s.summary       = %q{Ruby based Slack bot framework, for AWS Lambda use}
