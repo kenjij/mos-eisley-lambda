@@ -1,10 +1,10 @@
 Gem::Specification.new do |s|
   s.name          = 'mos-eisley-lambda'
-  s.version       = '0.5.1'
+  s.version       = '0.6.0'
   s.authors       = ['Ken J.']
   s.email         = ['kenjij@gmail.com']
   s.summary       = %q{Ruby based Slack bot framework, for AWS Lambda use}
-  s.description   = %q{Ruby based Slack bot framework, for AWS Lambda use. Also provides helpers to analyze/build messages. Event based utilizing SQS.}
+  s.description   = %q{Ruby based Slack bot framework, for AWS Lambda; event queue based. Also provides Block Kit helper.}
   s.homepage      = 'https://github.com/kenjij/mos-eisley-lambda'
   s.license       = 'MIT'
 

@@ -19,17 +19,26 @@ module MosEisley
     end
 
     # Call as often as necessary to add handlers with blocks; each call creates a MosEisley::Handler object
-    # @param type [Symbol] :action | :command | :event | :menu
-    # @param name [String]
+    # @param type [Symbol] :action | :command_response | :command | :event | :menu
+    # @param name [String] required for type = :command_response, otherwise optional
     def self.add(type, name = nil, &block)
+      if type == :command_response && name.nil?
+        raise ArgumentError.new('Name required for :command_response.')
+      end
       @handlers ||= {
         action: [],
+        command_response: {},
         command: [],
         event: [],
         menu: [],
       }
-      @handlers[type] << MosEisley::Handler.new(type, name, &block)
-      MosEisley.logger.debug("Added #{type} handler: #{@handlers[type].last}")
+      h = MosEisley::Handler.new(type, name, &block)
+      if type == :command_response
+        @handlers[type][name] = h 
+      else
+        @handlers[type] << h
+      end
+      MosEisley.logger.debug("Added #{type} handler: #{h}")
     end
 
     # Example: {'/command' => {response_type: 'ephemeral', text: nil}}
@@ -48,14 +57,22 @@ module MosEisley
     def self.run(type, event)
       logger = MosEisley.logger
       response = nil
-      @handlers[type].each do |h|
-        response = h.run(event)
-        if h.stopped?
-          logger.debug('Handler stop was requested.')
-          break
+      if type == :command_response
+        h = @handlers[type][event[:command]]
+        if h
+          response = h.run(event)
+          logger.info("Done running #{type} handlers.")
         end
+      else
+        @handlers[type].each do |h|
+          response = h.run(event)
+          if h.stopped?
+            logger.debug('Handler stop was requested.')
+            break
+          end
+        end
+        logger.info("Done running #{type} handlers.")
       end
-      logger.info("Done running #{type} handlers.")
       response
     end
 

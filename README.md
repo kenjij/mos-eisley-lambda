@@ -4,13 +4,12 @@
 
 “You will never find a more wretched hive of scum and villainy.” – Obi-Wan Kenobi
 
-Episode 2 of the Ruby based [Slack app](https://api.slack.com/) framework, this time for [AWS Lambda](https://aws.amazon.com/lambda/). Pure ruby, no external dependency.
+Episode 2 of the Ruby based [Slack app](https://api.slack.com/) framework, this time for [AWS Lambda](https://aws.amazon.com/lambda/). Pure Ruby, no external gem/library dependency.
 
 ## Setup
 
 ### AWS
 
-1. Create an SQS queue for MosEisley
 1. Create an IAM role for MosEisley Lambda function
 1. Create a Lambda function for MosEisley
    - You can install this gem using [Lambda Layer](#using-with-lambda-layers) or just copy the `lib` directory to your Lambda code.
@@ -20,10 +19,11 @@ Episode 2 of the Ruby based [Slack app](https://api.slack.com/) framework, this 
 
 Configure Lambda environment variable.
 
-- `SLACK_SIGNING_SECRET`: your Slack app credentials
-- `SLACK_BOT_ACCESS_TOKEN`: your Slack app OAuth token
-- `MOSEISLEY_SQS_URL`: AWS SQS URL used for the event pipeline
-- `MOSEISLEY_LOG_LEVEL` – optional, could be `DEBUG`, `INFO`, `WARN`, or `ERROR` 
+- `SLACK_CREDENTIALS_SSMPS_PATH`: hierarchy path to System Managers Parameter Store; e.g., `/slack/credentials/` would reference two parameters:
+  - `/slack/credetials/signing_secret`
+  - `/slack/credetials/bot_access_token`
+- `MOSEISLEY_LOG_LEVEL`: _optional_, could be `DEBUG`, `INFO`, `WARN`, or `ERROR` 
+- `SLACK_LOG_CHANNEL_ID`: _optional_, if you want to use `ME::SlackWeb.post_log()`
 
 Configure Lambda code in your `lambda_function.rb` file.
 
@@ -37,7 +37,7 @@ MosEisley::Handler.import
 # MosEisley::Handler.import_from_path('./my-handlers')
 
 def lambda_handler(event:, context:)
-  MosEisley::lambda_event(event)
+  MosEisley::lambda_event(event, context)
 end
 ```
 
@@ -85,19 +85,6 @@ ME::Handler.add(:command, 'A Slack command') do |event, myself|
 end
 ```
 
-## Protocols
-
-### SQS
-
-- Attributes
-  - `source`: `slack`, `moseisley`, or other
-    - `endpoint`: if source is `slack`, which endpoint it arrived at
-  - `destination`: `slack` or `moseisley`
-    - `api`: if destination is `slack`
-- Message (JSON)
-  - `params`: object, meant to be passed to Slack API 
-  - `payload`: the data/payload itself
-
 ### Helpers
 
 - `ME::S3PO` – collection of helpers to analyze/create Slack messages.
@@ -108,23 +95,22 @@ end
 ### Inbound
 
 1. Slack event is sent to Mos Eisley Lambda function via API Gateway
-1. Slack event is verified and returned with parsed object
+1. Slack event is verified and produces a parsed object
 1. If it's a slash command, MosEisley::Handler.command_acks is referenced and immediate response is sent
-1. The original Slack event JSON is sent to SQS with attributes
+1. The original Slack event JSON is sent to the function in a recursive fashion (this is to return the inital response ASAP)
 
 ### Event Processing
 
-1. Slack event is recieved by SQS trigger
+1. Lambda function is invoked by itself with the original Slack event
 1. Handlers are called and processed according to original endpoint the event was sent to; actions, commands, events, menus
-1. Should send a Slack message to complete the event cycle
+1. Send a Slack message as necessary and the Slack event cycle is complete
 
-<!-- ### Message Publishing
+<!-- ### Outbound, Messaging Only
 
-Send a message to SQS from another app to send a Slack message
+Invoke the function from another app to send a Slack message
 
-1. Create a Slack message packaged to be sent to the API and send to SQS
-1. Message event is recieved by SQS trigger
-1. Message is sent to Slack API -->
+1. Create a Slack message packaged to be sent to the API and invoke the function
+1. Message is received, then sent to Slack API according to payload-->
 
 ## Using with Lambda Layers
 
