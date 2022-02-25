@@ -31,6 +31,7 @@ module MosEisley
         command: [],
         event: [],
         menu: [],
+        nonslack: [],
       }
       h = MosEisley::Handler.new(type, name, &block)
       if type == :command_response
@@ -39,12 +40,6 @@ module MosEisley
         @handlers[type] << h
       end
       MosEisley.logger.debug("Added #{type} handler: #{h}")
-    end
-
-    # Example: {'/command' => {response_type: 'ephemeral', text: nil}}
-    # @return [Hash<String, Hash>] commands to acknowledge
-    def self.command_acks
-      @command_acks ||= {}
     end
 
     # @return [Hash<Symbol, Array>] containing all the handlers
@@ -106,7 +101,7 @@ module MosEisley
     end
 
     def to_s
-      "#<#{self.class}:#{self.object_id.to_s(16)}(#{name})>"
+      "#<#{self.class}:#{self.object_id.to_s(16)}(#{type}:#{name})>"
     end
   end
 end

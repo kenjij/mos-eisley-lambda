@@ -38,10 +38,15 @@ module MosEisley
       MosEisley.logger.info('Invoke event')
       MosEisley.logger.debug("#{event}")
       return invoke_event(event)
+    when event.dig('Records',0,'eventSource').start_with?('MosEisley:Slack_message:')
+      # Outbound Slack messaging request (via invoke)
+      MosEisley.logger.info('Messaging event')
+      MosEisley.logger.debug("#{event}")
+      return # TODO implement
     else
-      # Unknown event
-      MosEisley.logger.info('Unknown event')
-      return unknown_event(event)
+      # Non-Slack event
+      MosEisley.logger.info('Non-Slack event')
+      return nonslack_event(event)
     end
   end
 
@@ -181,7 +186,33 @@ module MosEisley
     end
   end
 
-  def self.unknown_event(event)
-    # TODO hand off to a handler
+  def self.nonslack_event(event)
+    MosEisley::Handler.run(:nonslack, event)
+  end
+
+  class Config
+    attr_reader :info, :timestamp
+    attr_reader :bot_access_token, :signing_secret
+
+    def initialize(data = {})
+      data.each do |k, v|
+        instance_variable_set("@#{k}", v)
+      end
+      @info = {
+        handlers: {
+          action: MosEisley.handlers[:action].length,
+          command_response: MosEisley.handlers[:command_response].length,
+          command: MosEisley.handlers[:command].length,
+          event: MosEisley.handlers[:event].length,
+        },
+        versions: {
+          mos_eisley: MosEisley::VERSION,
+          neko_http: Neko::HTTP::VERSION,
+          s3po: MosEisley::S3PO::VERSION,
+          s3po_blockkit: MosEisley::S3PO::VERSION,
+        },
+      }
+      @timestamp = Time.now
+    end
   end
 end
