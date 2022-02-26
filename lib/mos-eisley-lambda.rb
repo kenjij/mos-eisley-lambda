@@ -11,10 +11,10 @@ require 'json'
 ME = MosEisley
 
 module MosEisley
-  def self.config(data = nil)
+  def self.config(context = nil, data = nil)
     if data
       unless @config
-        @config = Config.new(data)
+        @config = Config.new(context, data)
         MosEisley.logger.info('Config loaded')
       else
         MosEisley.logger.warn('Ignored, already configured')
@@ -24,7 +24,7 @@ module MosEisley
   end
 
   def self.lambda_event(event, context)
-    raise 'Pre-flight check failed!' unless preflightcheck
+    raise 'Pre-flight check failed!' unless preflightcheck(context)
     case
     when event['initializeOnly']
       MosEisley.logger.info('Dry run, initializing only')
@@ -50,7 +50,7 @@ module MosEisley
     end
   end
 
-  def self.preflightcheck
+  def self.preflightcheck(context)
     if config
       MosEisley.logger.debug("Confing already loaded at: #{config.timestamp}")
       return true
@@ -99,7 +99,7 @@ module MosEisley
           MosEisley.logger.error(t)
           return false
         end
-        config(c)
+        config(context, c)
       end
     end
     return true
@@ -191,13 +191,14 @@ module MosEisley
   end
 
   class Config
-    attr_reader :info, :timestamp
+    attr_reader :context, :info, :timestamp
     attr_reader :bot_access_token, :signing_secret
 
-    def initialize(data = {})
+    def initialize(context, data)
       data.each do |k, v|
         instance_variable_set("@#{k}", v)
       end
+      @context = context
       @info = {
         handlers: {
           action: MosEisley.handlers[:action].length,
@@ -213,6 +214,14 @@ module MosEisley
         },
       }
       @timestamp = Time.now
+    end
+
+    def arn
+      context.invoked_function_arn
+    end
+
+    def remaining_time
+      context.get_remaining_time_in_millis
     end
   end
 end

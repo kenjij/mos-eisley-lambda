@@ -39,7 +39,7 @@ module MosEisley
       else
         @handlers[type] << h
       end
-      MosEisley.logger.debug("Added #{type} handler: #{h}")
+      MosEisley.logger.debug("Added handler: #{h}")
     end
 
     # @return [Hash<Symbol, Array>] containing all the handlers
