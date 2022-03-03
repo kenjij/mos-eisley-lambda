@@ -210,7 +210,7 @@ module MosEisley
           mos_eisley: MosEisley::VERSION,
           neko_http: Neko::HTTP::VERSION,
           s3po: MosEisley::S3PO::VERSION,
-          s3po_blockkit: MosEisley::S3PO::VERSION,
+          s3po_blockkit: MosEisley::S3PO::BlockKit::VERSION,
         },
       }
       @timestamp = Time.now
