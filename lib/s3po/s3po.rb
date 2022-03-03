@@ -1,13 +1,14 @@
+#
 # S3PO - Slack protocol droid in Mos Eisley
 #
-# v.20210626
-
 require 'json'
 require 'time'
 require_relative './blockkit'
 
 module MosEisley
   module S3PO
+    VERSION = '20210626'.freeze
+
     def self.parse_json(json)
       return JSON.parse(json, {symbolize_names: true})
     rescue => e

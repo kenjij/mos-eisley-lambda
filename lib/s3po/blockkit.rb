@@ -1,11 +1,12 @@
+#
 # S3PO - Slack protocol droid in Mos Eisley
 #     ::BlockKit - Block Kit tools
 #
-# v.20220201
-
 module MosEisley
   module S3PO
     module BlockKit
+      VERSION = '20220224'.freeze
+
       # @param txt [String]
       # @param type [Symbol] :plain | :emoji | :mrkdwn
       # @return [Hash] Block Kit section object
@@ -34,6 +35,16 @@ module MosEisley
         {
           type: :section,
           text: text(txt, type),
+        }
+      end
+
+      # @param fields [Array<String>]
+      # @param type [Symbol] :plain | :emoji | :mrkdwn
+      # @return [Hash] Block Kit section object
+      def self.sec_fields(fields, type = :mrkdwn)
+        {
+          type: :section,
+          fields: fields.map{ |txt| text(txt, type) },
         }
       end
 
