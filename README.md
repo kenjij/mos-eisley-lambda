@@ -17,7 +17,7 @@ Episode 2 of the Ruby based [Slack app](https://api.slack.com/) framework, this 
    1. Create the appropriate routes (or use [the OpenAPI spec](https://github.com/kenjij/mos-eisley-lambda/blob/main/openapi3.yaml))
    1. Create Lambda integration and attach it to all the routes
 
-Configure Lambda environment variable.
+Configure Lambda environment variables.
 
 - `SLACK_CREDENTIALS_SSMPS_PATH`: hierarchy path to System Managers Parameter Store; e.g., `/slack/credentials/` would reference two parameters:
   - `/slack/credetials/signing_secret`
@@ -60,7 +60,7 @@ Create your own Mos Eisley handlers as blocks and register them. By default, sto
 :nonslack
 ```
 
-`:command_response` types are Slack command keyword and response pair. The response is sent as-is back to Slack as an [immediate response](https://api.slack.com/interactivity/slash-commands#responding_immediate_response). `ME` is an alias to `MosEisley`.
+`:command_response` handlers are special. Specify a Slash Command and a simple block resulting with a response Hash object. This will be sent back as an [immediate response](https://api.slack.com/interactivity/slash-commands#responding_immediate_response). Do not process the command in this handler. (`ME` is an alias to `MosEisley`.)
 
 ```ruby
 ME::Handler.add(:command_response, '/sample') do |event, myself|
@@ -71,7 +71,7 @@ ME::Handler.add(:command_response, '/sample') do |event, myself|
 end
 ```
 
-Add handlers to process the Slack event.
+The other handler types are where Slack events are processed. These handlers are called asynchronous to the original Slack event so there is no time constraint. (See [Event Lifecycle](#event-lifecycle) for more details.)
 
 ```ruby
 ME::Handler.add(:command, 'A Slack command') do |event, myself|
@@ -102,6 +102,7 @@ end
 ### Helpers
 
 - `MosEisley::S3PO` – collection of helpers to analyze/create Slack messages.
+- `MosEisley::S3PO::BlockKit` – methods to easily create Block Kit structures.
 - `MosEisley::SlackWeb` – methods for sending payloads to Slack Web API calls.
 
 ## Event Lifecycle
@@ -129,13 +130,6 @@ sequenceDiagram
   L-->>-S: E.g., chat.postMessage
   end
 ```
-
-<!-- ### Outbound, Messaging Only
-
-Invoke the function from another app to send a Slack message
-
-1. Create a Slack message packaged to be sent to the API and invoke the function
-1. Message is received, then sent to Slack API according to payload-->
 
 ## Using with Lambda Layers
 
