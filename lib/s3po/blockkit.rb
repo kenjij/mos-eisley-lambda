@@ -5,7 +5,7 @@
 module MosEisley
   module S3PO
     module BlockKit
-      VERSION = '20220224'.freeze
+      VERSION = '20221028'.freeze
 
       # @param txt [String]
       # @param type [Symbol] :plain | :emoji | :mrkdwn
@@ -81,7 +81,7 @@ module MosEisley
       # @param txt [String]
       # @param type [Symbol] :plain_text | :emoji | :mrkdwn
       # @return [Hash] Block Kit option object
-      def self.option(value, txt, type = :mrkdwn)
+      def self.option(value, txt, type = :emoji)
         t = MosEisley::S3PO::BlockKit.text(txt, type)
         {
           text: t,
