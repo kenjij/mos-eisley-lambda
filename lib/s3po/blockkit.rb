@@ -88,6 +88,15 @@ module MosEisley
           value: value,
         }
       end
+
+      # @param values [Array<String>]
+      # @param texts [Array<String>]
+      # @param type [Symbol] :plain_text | :emoji
+      # @return [Hash] Block Kit select menu (static) object
+      def self.select_menu(values, texts, type = :emoji)
+        # TODO genarate a static select menu block element
+        # https://api.slack.com/reference/block-kit/block-elements#static_select
+      end
     end
   end
 end
